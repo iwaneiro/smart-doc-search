@@ -1,0 +1,66 @@
+[project]
+name = "smart-doc-search"
+version = "0.1.0"
+description = "RAG-powered document search engine with LLM integration"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Kuba", email = "your@email.com" }
+]
+
+dependencies = [
+    # LangChain ecosystem
+    "langchain>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langchain-ollama>=0.2.0",
+    "langchain-chroma>=0.1.0",
+    "langchain-community>=0.3.0",
+
+    # Wektorowa baza danych
+    "chromadb>=0.5.0",
+
+    # Konfiguracja z walidacją typów
+    "pydantic-settings>=2.5.0",
+    "python-dotenv>=1.0.0",
+
+    # Wczytywanie dokumentów
+    "pypdf>=4.0.0",
+    "unstructured>=0.15.0",
+
+    # Interfejs użytkownika
+    "streamlit>=1.38.0",
+
+    # Narzędzia
+    "loguru>=0.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.6.0",
+    "mypy>=1.11.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatchling.build.targets.wheel]
+packages = ["src/smart_doc_search"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -16,21 +16,21 @@ dependencies = [
     "langchain-chroma>=0.1.0",
     "langchain-community>=0.3.0",
 
-    # Wektorowa baza danych
+    # Vector database
     "chromadb>=0.5.0",
 
-    # Konfiguracja z walidacją typów
+    # Configuration with type validation
     "pydantic-settings>=2.5.0",
     "python-dotenv>=1.0.0",
 
-    # Wczytywanie dokumentów
+    # Docs loading
     "pypdf>=4.0.0",
     "unstructured>=0.15.0",
 
-    # Interfejs użytkownika
+    # UI
     "streamlit>=1.38.0",
 
-    # Narzędzia
+    # Utilities
     "loguru>=0.7.0",
 ]
 

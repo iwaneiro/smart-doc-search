@@ -8,6 +8,8 @@ from smart_doc_search.llm_factory import get_llm_provider
 from smart_doc_search.vector_store import VectorStore
 from langchain_core.documents import Document
 
+pytestmark = pytest.mark.integration
+
 
 def make_settings(tmp_path: Path, **kwargs) -> Settings:
     """Create Settings with a temporary ChromaDB directory."""

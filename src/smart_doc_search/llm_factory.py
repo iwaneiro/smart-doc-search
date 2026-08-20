@@ -85,7 +85,7 @@ class OllamaLLMProvider(LLMProviderBase):
             return ChatOllama(
                 model=self._settings.ollama_llm_model,
                 base_url=self._settings.ollama_base_url,
-                temperature=0.1,
+                temperature=0.0,
             )
         except Exception as e:
             raise LLMProviderError(

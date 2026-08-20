@@ -19,3 +19,7 @@ class DocumentLoadError(SmartDocSearchError):
 
 class VectorStoreError(SmartDocSearchError):
     """Raised when a ChromaDB vector store operation fails."""
+
+
+class GenerationError(SmartDocSearchError):
+    """Raised when the LLM fails to generate an answer at query time."""

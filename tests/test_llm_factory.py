@@ -1,7 +1,3 @@
-"""
-Unit tests for the LLM Factory Pattern.
-"""
-
 import pytest
 
 from smart_doc_search.config import LLMProvider, Settings

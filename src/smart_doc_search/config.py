@@ -109,15 +109,12 @@ class Settings(BaseSettings):
         """Return True if the active provider is Ollama."""
         return self.llm_provider == LLMProvider.OLLAMA
 
+    @property
+    def collection_name_for_provider(self) -> str:
+        """Chroma collection name namespaced by the active LLM provider."""
+        return f"{self.chroma_collection_name}_{self.llm_provider.value}"
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    """Return a cached singleton Settings instance.
-
-    Uses lru_cache so the .env file is read only once
-    and the same object is shared across the entire application.
-
-    Returns:
-        Validated Settings instance.
-    """
+    """Return a cached singleton Settings instance."""
     return Settings()

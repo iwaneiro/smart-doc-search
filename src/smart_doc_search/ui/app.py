@@ -5,6 +5,7 @@ Provides a chat-style UI for document upload, ingestion,
 and question answering over the uploaded corpus.
 """
 
+from langchain_core.messages import AIMessage, HumanMessage
 import streamlit as st
 from loguru import logger
 
@@ -19,10 +20,8 @@ from smart_doc_search.exceptions import (
 from smart_doc_search.llm_factory import get_llm_provider
 from smart_doc_search.rag_engine import RAGEngine, RAGResult
 
-# ---------------------------------------------------------------------------
-# Page configuration — must be the first Streamlit call
-# ---------------------------------------------------------------------------
 
+# Page configuration — must be the first Streamlit call
 st.set_page_config(
     page_title="Smart Doc Search",
     page_icon="🔍",
@@ -31,11 +30,8 @@ st.set_page_config(
 )
 
 
-# ---------------------------------------------------------------------------
+
 # Session state helpers
-# ---------------------------------------------------------------------------
-
-
 def _init_session_state() -> None:
     """Initialize Streamlit session state with default values."""
     defaults = {
@@ -52,14 +48,7 @@ def _init_session_state() -> None:
 def _get_or_create_engine(settings: Settings) -> RAGEngine | None:
     """Return the cached RAGEngine or create a new one.
 
-    Creates a new engine when the LLM provider changes or on first load.
-
-    Args:
-        settings: Validated application configuration.
-
-    Returns:
-        Initialized RAGEngine or None if initialization fails.
-    """
+    Creates a new engine when the LLM provider changes or on first load."""
     current_provider = settings.llm_provider.value
 
     # Rebuild engine if provider changed
@@ -83,24 +72,14 @@ def _get_or_create_engine(settings: Settings) -> RAGEngine | None:
     return st.session_state.engine
 
 
-# ---------------------------------------------------------------------------
+
 # Sidebar
-# ---------------------------------------------------------------------------
-
-
 def _render_sidebar(settings: Settings) -> Settings:
-    """Render the sidebar with configuration and file upload controls.
-
-    Args:
-        settings: Current application settings.
-
-    Returns:
-        Potentially updated Settings if provider was changed.
-    """
+    """Render the sidebar with configuration and file upload controls."""
     with st.sidebar:
         st.title("⚙️ Configuration")
 
-        # --- LLM Provider switcher ---
+        #  LLM Provider switcher
         st.subheader("LLM Provider")
         provider_choice = st.radio(
             label="Select provider:",
@@ -122,7 +101,7 @@ def _render_sidebar(settings: Settings) -> Settings:
 
         st.divider()
 
-        # --- Document upload ---
+        #  Document upload
         st.subheader("📄 Upload Documents")
         uploaded_files = st.file_uploader(
             label="Choose files to upload:",
@@ -134,20 +113,20 @@ def _render_sidebar(settings: Settings) -> Settings:
         if uploaded_files:
             _handle_file_upload(uploaded_files, settings)
 
-        # --- Ingested files list ---
+        #  Ingested files list
         if st.session_state.ingested_files:
             st.divider()
             st.subheader("✅ Ingested Documents")
             for fname in st.session_state.ingested_files:
                 st.markdown(f"- `{fname}`")
 
-        # --- Clear button ---
+        #  Clear button
         if st.session_state.engine and st.session_state.ingested_files:
             st.divider()
             if st.button("🗑️ Clear all documents", use_container_width=True):
                 _clear_documents()
 
-        # --- Stats ---
+        #  Stats
         if st.session_state.engine:
             st.divider()
             count = st.session_state.engine.get_document_count()
@@ -157,12 +136,7 @@ def _render_sidebar(settings: Settings) -> Settings:
 
 
 def _handle_file_upload(uploaded_files, settings: Settings) -> None:
-    """Save uploaded files to a temp directory and ingest them.
-
-    Args:
-        uploaded_files: List of Streamlit UploadedFile objects.
-        settings: Validated application configuration.
-    """
+    """Save uploaded files to a temp directory and ingest them."""
     import tempfile
     from pathlib import Path
 
@@ -208,17 +182,9 @@ def _clear_documents() -> None:
         st.error(f"❌ Failed to clear documents: {e}")
 
 
-# ---------------------------------------------------------------------------
 # Main chat interface
-# ---------------------------------------------------------------------------
-
-
 def _render_chat(settings: Settings) -> None:
-    """Render the main chat interface for question answering.
-
-    Args:
-        settings: Validated application configuration.
-    """
+    """Render the main chat interface for question answering."""
     st.title("🔍 Smart Doc Search")
     st.caption("RAG-powered document search engine with LLM integration")
 
@@ -243,15 +209,18 @@ def _render_chat(settings: Settings) -> None:
 
 
 def _handle_query(question: str, settings: Settings) -> None:
-    """Process a user question and display the answer with sources.
-
-    Args:
-        question: User's natural language question.
-        settings: Validated application configuration.
-    """
+    """Process a user question and display the answer with sources."""
     engine = _get_or_create_engine(settings)
     if engine is None:
         return
+
+    # Prepare chat history in LangChain format
+    langchain_history = []
+    for msg in st.session_state.messages:
+        if msg["role"] == "user":
+            langchain_history.append(HumanMessage(content=msg["content"]))
+        elif msg["role"] == "assistant":
+            langchain_history.append(AIMessage(content=msg["content"]))
 
     # Display user message
     st.session_state.messages.append({"role": "user", "content": question})
@@ -262,7 +231,11 @@ def _handle_query(question: str, settings: Settings) -> None:
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             try:
-                result: RAGResult = engine.query(question)
+                # Pass chat history to the engine
+                result: RAGResult = engine.query(
+                    question,
+                    chat_history=langchain_history
+                )
                 st.markdown(result.answer)
 
                 if result.source_documents:
@@ -286,11 +259,7 @@ def _handle_query(question: str, settings: Settings) -> None:
 
 
 def _render_sources(source_documents) -> None:
-    """Render retrieved source chunks in a collapsible expander.
-
-    Args:
-        source_documents: List of LangChain Document objects used as context.
-    """
+    """Render retrieved source chunks in a collapsible expander."""
     with st.expander(f"📚 Sources ({len(source_documents)} chunks)", expanded=False):
         for i, doc in enumerate(source_documents, start=1):
             source = doc.metadata.get("source", "Unknown")
@@ -303,11 +272,8 @@ def _render_sources(source_documents) -> None:
                 st.divider()
 
 
-# ---------------------------------------------------------------------------
+
 # Entry point
-# ---------------------------------------------------------------------------
-
-
 def main() -> None:
     """Main entry point for the Streamlit application."""
     _init_session_state()

@@ -20,7 +20,7 @@ from loguru import logger
 
 from smart_doc_search.config import Settings
 from smart_doc_search.document_loader import DocumentProcessor
-from smart_doc_search.exceptions import DocumentLoadError, VectorStoreError
+from smart_doc_search.exceptions import DocumentLoadError, GenerationError, VectorStoreError
 from smart_doc_search.llm_factory import LLMProviderBase
 from smart_doc_search.vector_store import VectorStore
 
@@ -34,10 +34,11 @@ _RAG_PROMPT = ChatPromptTemplate.from_messages(
         (
             "system",
             """You are a precise document analysis assistant.
-Answer the user's question using ONLY the context provided below.
-If the answer cannot be found in the context, say exactly:
-"I could not find an answer to your question in the provided documents."
-Do not use any knowledge outside of the provided context.
+Answer the user's question using the context provided below.
+You may reason and draw conclusions from the context, but do not use knowledge outside of it.
+If the context contains relevant information, always provide an answer based on it.
+Only if the context contains absolutely no relevant information, say:
+"I could not find an answer to your question in the provided documents.
 
 Context:
 {context}""",
@@ -127,7 +128,7 @@ class RAGEngine:
 
         Retrieves relevant chunks once, formats them as context,
         then passes context + question directly to the prompt chain.
-        This avoids the double vector search anti-pattern.
+        This avoids the double vector search antipattern.
 
         Args:
             question: Natural language question from the user.
@@ -137,6 +138,7 @@ class RAGEngine:
 
         Raises:
             VectorStoreError: If retrieval from ChromaDB fails.
+            GenerationError: If the LLM fails to produce an answer
         """
         if not question.strip():
             return RAGResult(
@@ -154,10 +156,16 @@ class RAGEngine:
         context_text = "\n\n---\n\n".join(doc.page_content for doc in source_docs)
 
         # Prompt → LLM → parser (no retriever inside the chain)
-        answer = self._prompt_chain.invoke({
-            "context": context_text,
-            "question": question,
-        })
+        try:
+            answer = self._prompt_chain.invoke({
+                "context": context_text,
+                "question": question,
+            })
+        except Exception as e:
+            raise GenerationError(
+                f"Failed to generate an answer using "
+                f"'{self._settings.llm_provider.value}': {e}"
+            ) from e
         logger.info("Query answered successfully.")
 
         return RAGResult(

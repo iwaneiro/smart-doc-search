@@ -30,13 +30,15 @@ class VectorStore:
         persist_dir = Path(settings.chroma_persist_dir)
         persist_dir.mkdir(parents=True, exist_ok=True)
 
+        self._collection_name = settings.collection_name_for_provider
+
         try:
             logger.info(
                 f"Connecting to ChromaDB at '{persist_dir}' "
-                f"(collection: '{settings.chroma_collection_name}')"
+                f"(collection: '{self._collection_name}')"
             )
             self._chroma = Chroma(
-                collection_name=settings.chroma_collection_name,
+                collection_name=self._collection_name,
                 embedding_function=embeddings,
                 persist_directory=str(persist_dir),
             )
@@ -80,7 +82,7 @@ class VectorStore:
     def get_document_count(self) -> int:
         """Return total chunk count in the collection."""
         count = self._chroma._collection.count()
-        logger.debug(f"Collection '{self._settings.chroma_collection_name}' has {count} chunks.")
+        logger.debug(f"Collection '{self._collection_name}' has {count} chunks.")
         return count
 
     def clear(self) -> None:

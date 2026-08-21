@@ -150,15 +150,15 @@ def _handle_file_upload(uploaded_files, settings: Settings) -> None:
             continue
 
         with st.spinner(f"Ingesting `{uploaded_file.name}`..."):
-            try:
-                # Write to a temporary file so DocumentProcessor can read it
-                suffix = Path(uploaded_file.name).suffix
-                with tempfile.NamedTemporaryFile(
-                    delete=False, suffix=suffix
-                ) as tmp:
-                    tmp.write(uploaded_file.getvalue())
-                    tmp_path = tmp.name
+            # Write to a temporary file so DocumentProcessor can read it
+            suffix = Path(uploaded_file.name).suffix
+            with tempfile.NamedTemporaryFile(
+                delete=False, suffix=suffix
+            ) as tmp:
+                tmp.write(uploaded_file.getvalue())
+                tmp_path = tmp.name
 
+            try:
                 count = engine.ingest(tmp_path)
                 st.session_state.ingested_files.append(uploaded_file.name)
                 st.success(f"✅ `{uploaded_file.name}` ingested ({count} chunks)")
@@ -168,6 +168,8 @@ def _handle_file_upload(uploaded_files, settings: Settings) -> None:
                 st.error(f"❌ Failed to load `{uploaded_file.name}`: {e}")
             except VectorStoreError as e:
                 st.error(f"❌ Failed to store `{uploaded_file.name}`: {e}")
+            finally:
+                Path(tmp_path).unlink(missing_ok=True)
 
 
 def _clear_documents() -> None:

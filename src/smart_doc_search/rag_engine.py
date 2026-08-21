@@ -85,27 +85,11 @@ class RAGEngine:
         self._vector_store = VectorStore(settings, self._embeddings)
         self._chat_model: BaseChatModel = provider.get_chat_model()
 
-        # Chain is now prompt-only — retrieval happens once in query()
         self._prompt_chain = self._build_chain(self._chat_model)
         logger.info("RAG engine initialized successfully.")
-
-    # ------------------------------------------------------------------
     # Public API
-    # ------------------------------------------------------------------
-
     def ingest(self, file_path: str) -> int:
-        """Load, chunk, embed and store a document.
-
-        Args:
-            file_path: Path to the document to ingest (PDF, TXT, MD).
-
-        Returns:
-            Number of chunks stored in the vector store.
-
-        Raises:
-            DocumentLoadError: If the document cannot be read or parsed.
-            VectorStoreError: If storing embeddings fails.
-        """
+        """Load, chunk, embed and store a document."""
         logger.info(f"Ingesting document: {file_path}")
         chunks = self._document_processor.load_and_split(file_path)
         count = self._vector_store.add_documents(chunks)
@@ -130,10 +114,16 @@ class RAGEngine:
 
         if chat_history:
             rephrase_chain = _REPHRASE_PROMPT | self._chat_model | StrOutputParser()
-            search_query = rephrase_chain.invoke({
-                "chat_history": chat_history,
-                "question": question
-            })
+            try:
+                search_query = rephrase_chain.invoke({
+                    "chat_history": chat_history,
+                    "question": question
+                })
+            except Exception as e:
+                raise GenerationError(
+                    f"Failed to rephrase question using "
+                    f"'{self._settings.llm_provider.value}': {e}"
+                ) from e
             logger.debug(f"Rephrased question for search: '{search_query}'")
         else:
             search_query = question
@@ -171,10 +161,7 @@ class RAGEngine:
         self._vector_store.clear()
         logger.info("All documents cleared from the vector store.")
 
-    # ------------------------------------------------------------------
     # Private helpers
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _build_chain(chat_model: BaseChatModel):
         """Compose the prompt-only LCEL chain (retrieval handled externally)."""

@@ -76,13 +76,22 @@ class RAGEngine:
         >>> print(result.answer)
     """
 
-    def __init__(self, settings: Settings, provider: LLMProviderBase) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        provider: LLMProviderBase,
+        document_processor: DocumentProcessor | None = None,
+        vector_store: VectorStore | None = None,
+    ) -> None:
+        """Compose the RAG pipeline from its collaborators.
+
+        document_processor and vector_store are optional seams for testing. """
         self._settings = settings
         self._provider = provider
 
-        self._document_processor = DocumentProcessor(settings)
         self._embeddings = provider.get_embedding_model()
-        self._vector_store = VectorStore(settings, self._embeddings)
+        self._document_processor = document_processor or DocumentProcessor(settings)
+        self._vector_store = vector_store or VectorStore(settings, self._embeddings)
         self._chat_model: BaseChatModel = provider.get_chat_model()
 
         self._prompt_chain = self._build_chain(self._chat_model)

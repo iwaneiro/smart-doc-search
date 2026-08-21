@@ -81,16 +81,20 @@ class VectorStore:
 
     def get_document_count(self) -> int:
         """Return total chunk count in the collection."""
-        count = self._chroma._collection.count()
+        try:
+            ids = self._chroma.get(include=[])["ids"]
+        except Exception as e:
+            raise VectorStoreError(f"Failed to count documents: {e}") from e
+        count = len(ids)
         logger.debug(f"Collection '{self._collection_name}' has {count} chunks.")
         return count
 
     def clear(self) -> None:
         """Delete all documents from the collection."""
         try:
-            self._chroma._collection.delete(
-                where={"source": {"$ne": ""}}
-            )
+            ids = self._chroma.get(include=[])["ids"]
+            if ids:
+                self._chroma.delete(ids=ids)
             logger.info("Vector store cleared.")
         except Exception as e:
             raise VectorStoreError(f"Failed to clear vector store: {e}") from e
